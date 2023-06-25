@@ -1,0 +1,140 @@
+module Digit_displayer(digit, s, pnl, btn1, lighter, btn2, clk);
+	input [3:0] digit; //свичи для ввода числа
+	input clk; //50 Мгц клок
+	output wire [7:0] s; //Крайняя правая цифра
+	output wire [3:0] pnl; //правая LED панель
+	wire [7:0] first_d; //Самая левая цифра
+	wire [7:0] second_d; //Вторая слева цифра
+	wire [7:0] third_d; // Предпоследняя цифра цифра
+	wire [7:0] fourth_d; //Последняя цифра
+	digit_enter(digit, fourth_d); //Ввод правой крайней цифры
+	wire clock_for_panel;
+	wire [1:0] rcounter;
+	Slow_Clock_100kHz(clk, clock_for_panel); //Замедляем клок до 100 кГц для отображения цифр
+	Refresh_Counter(clock_for_panel, rcounter); //Счётчик для отображения цифр
+	Anode_Control(rcounter, pnl); //Поочерёдное (практически одновременное) отображение цифр
+	input btn1;
+	output wire [3:0] lighter;
+	input btn2;
+	display_changer(btn1, clk, lighter);
+	new_button(btn2, clk, first_d, second_d, third_d, fourth_d);
+	reg [7:0] tmps;
+	assign s = tmps;
+	always @ (pnl)
+	begin
+		case (pnl)
+		4'b0111: tmps = first_d;
+		4'b1011: tmps = second_d;
+		4'b1101: tmps = third_d;
+		4'b1110: tmps = fourth_d;
+		endcase
+	end
+	
+	
+endmodule
+
+module digit_enter(digit, s);
+	input [3:0] digit; //4 свича
+	output wire [7:0] s; //7 сегментов
+	reg[7:0] segments;
+	assign s = segments;
+	always @(digit)
+	begin
+		case (digit)
+			4'b1111: segments = 8'b10000001; //0
+			4'b1110: segments = 8'b11001111; //1
+			4'b1101: segments = 8'b10010010; //2
+			4'b1100: segments = 8'b10000110; //3
+			4'b1011: segments = 8'b11001100; //4
+			4'b1010: segments = 8'b10100100; //5
+			4'b1001: segments = 8'b10100000; //6
+			4'b1000: segments = 8'b10001111; //7
+			4'b0111: segments = 8'b10000000; //8
+			4'b0110: segments = 8'b10000100; //9
+			default: segments = 8'b11111110; //-
+		endcase
+	end
+endmodule
+
+module Refresh_Counter(refresh_clk, refresh_counter);
+	input refresh_clk;
+	output reg [1:0] refresh_counter = 2'b00;
+	always @(posedge refresh_clk) refresh_counter <= refresh_counter + 2'b01;
+endmodule
+
+module Anode_Control(refresh_counter, anode); //включение LED панели для отображения цифр (Pin 128, 129, 132, 133)
+	input [1:0] refresh_counter;
+	output reg [3:0] anode;
+	always @(refresh_counter)
+	begin
+		case (refresh_counter)
+		2'b00: anode = 4'b1110;
+		2'b01: anode = 4'b1101;
+		2'b10: anode = 4'b1011;
+		2'b11: anode = 4'b0111;
+		endcase
+	end
+endmodule 
+/*
+module BCD_Control(digit1, digit2, digit3, digit4, refresh_counter, displayed_digit);
+	input [3:0] digit1;
+	input [3:0] digit2;
+	input [3:0] digit3;
+	input [3:0] digit4;
+	input [1:0] refresh_counter;
+	output reg [3:0] displayed_digit = 0;
+	always @(refresh_counter)
+	begin
+		case (refresh_counter)
+		2'b00: displayed_digit = digit1;
+		2'b01: displayed_digit = digit2;
+		2'b00: displayed_digit = digit3;
+		2'b00: displayed_digit = digit4;
+		endcase
+	end
+endmodule */
+	
+module BTD_translaror(bin_digit, dec_output);
+	input [7:0] bin_digit;
+	output reg [13:0] dec_output;
+	initial
+	begin
+	case (bin_digit)
+		8'b10000001: dec_output = 0; //лучше бы заменить всё на числа в двоичной СС
+		8'b11001111: dec_output = 1;
+		8'b10010010: dec_output = 2;
+		8'b10000110: dec_output = 3;
+		8'b11001100: dec_output = 4;
+		8'b10100100: dec_output = 5;
+		8'b10100000: dec_output = 6;
+		8'b10001111: dec_output = 7;
+		8'b10000000: dec_output = 8;
+		8'b10000100: dec_output = 9;
+		default: dec_output = 0;
+	endcase
+	end
+endmodule	
+module summator(thousands, hundreds, tens, units, final_number);
+	input [13:0] thousands;
+	input [13:0] hundreds;
+	input [13:0] tens;
+	input [13:0] units;
+	output wire [13:0] final_number;
+	assign final_number = (thousands * 1000 + hundreds * 100 + tens * 10 + units) % 360;
+endmodule
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
